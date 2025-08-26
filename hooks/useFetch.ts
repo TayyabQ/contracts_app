@@ -22,6 +22,7 @@ export function useFetch<TResponse = unknown>(
       controllerRef.current = controller;
       setLoading(true);
       setError(null);
+      setData(null); // Clear previous data before new request
       try {
         const res = await fetch(input, {
           ...init,
@@ -65,7 +66,14 @@ export function useFetch<TResponse = unknown>(
     };
   }, [execute, init?.auto]);
 
-  return { data, error, loading, execute } as const;
+  const reset = React.useCallback(() => {
+    setData(null);
+    setError(null);
+    setLoading(false);
+    controllerRef.current?.abort();
+  }, []);
+
+  return { data, error, loading, execute, reset } as const;
 }
 
 

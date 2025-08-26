@@ -2,25 +2,54 @@
 
 import React from "react";
 import FilePicker from "@/components/FilePicker";
+import ContractsList from "@/components/ContractsList";
 import { useFetch } from "@/hooks/useFetch";
 
 export default function DashboardPage() {
   const [selectedFileName, setSelectedFileName] = React.useState<string>("");
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
-  const { data: uploadData, error: uploadError, loading: uploading, execute } =
+  const [showContractsList, setShowContractsList] = React.useState(true);
+  const { data: uploadData, error: uploadError, loading: uploading, execute, reset: resetUpload } =
     useFetch<
       | { ok: true; name: string; size: number; type: string; savedAs: string; extractedText?: string }
       | { error: string }
     >("/api/upload");
 
-  const { data: aiData, error: aiError, loading: aiLoading, execute: runAnalyze } =
+  const { data: aiData, error: aiError, loading: aiLoading, execute: runAnalyze, reset: resetAnalysis } =
     useFetch<{ summary: string; issues: string[]; improvements: string[] } | { error: string }>(
       "/api/analyze"
     );
 
+  // Reset function to clear all states
+  const resetStates = () => {
+    setSelectedFileName("");
+    setSelectedFile(null);
+    resetUpload();
+    resetAnalysis();
+  };
+
+
+
+  // If showing contracts list, render only that
+  if (showContractsList) {
+    return (
+      <div className="flex flex-col gap-6 max-w-4xl w-full">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-semibold">All Contracts</h1>
+          <button
+            onClick={() => setShowContractsList(false)}
+            className="bg-white hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-900 dark:text-white font-medium py-2 px-4 rounded-md transition-colors border border-gray-300 dark:border-gray-600"
+          >
+            Close
+          </button>
+        </div>
+        <ContractsList key={Date.now()} />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6 max-w-xl w-full">
-      <h1 className="text-2xl font-semibold">Contract Analyzer</h1>
       <p className="text-sm text-gray-600 dark:text-gray-300">
         Upload a PDF contract to analyze.
       </p>
@@ -40,18 +69,38 @@ export default function DashboardPage() {
         <button
           onClick={async () => {
             if (!selectedFile) return;
+            
+            // Clear any previous data before starting new upload
+            resetUpload();
+            resetAnalysis();
+            
+            // Small delay to ensure states are cleared
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            console.log('Starting upload for:', selectedFile.name);
             const formData = new FormData();
             formData.append("file", selectedFile);
             const result = await execute({ method: "POST", body: formData });
             const ok = result.ok && result.data && "ok" in result.data && (result.data as any).ok;
+            
+            console.log('Upload result:', { ok, data: result.data });
+            
             if (ok) {
-              const extracted = (result.data as any).extractedText || "";
-              if (extracted) {
+              const extracted = (result.data as any).extractedText;
+              const contractId = (result.data as any).contractId;
+              console.log('Starting analysis with:', { extractedLength: extracted.length, contractId });
+              
+              if (extracted && contractId) {
                 await runAnalyze({
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ extractedText: extracted }),
+                  body: JSON.stringify({ 
+                    extractedText: extracted,
+                    contractId: contractId 
+                  }),
                 });
+              } else {
+                console.warn('Missing extracted text or contract ID:', { extracted: !!extracted, contractId: !!contractId });
               }
             }
           }}
@@ -60,16 +109,23 @@ export default function DashboardPage() {
         >
           {uploading ? "Uploading..." : "Upload"}
         </button>
+        <button
+          onClick={() => setShowContractsList(true)}
+          className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-md transition-colors flex-1"
+        >
+          View All Contracts
+        </button>
       </div>
       {uploadData && "ok" in uploadData && (uploadData as any).ok && (
         <div className="mt-2 text-sm">
-          <div className="font-medium">File uploaded</div>
+          <div className="font-medium text-green-600">✅ File uploaded successfully!</div>
           <ul className="list-disc list-inside">
             <li>Name: {(uploadData as any).name}</li>
             <li>Type: {(uploadData as any).type}</li>
             <li>Size: {(((uploadData as any).size as number) / 1024).toFixed(2)} KB</li>
             <li>Saved as: {(uploadData as any).savedAs}</li>
           </ul>
+
           {Boolean((uploadData as any).extractedText) && (
             <div className="mt-4">
               <div className="text-base font-medium mb-1">Extracted Content</div>
@@ -78,7 +134,9 @@ export default function DashboardPage() {
           )}
           {Boolean((uploadData as any).extractedText) && (
             <div className="mt-4">
-              <div className="text-base font-medium mb-2">AI Analysis</div>
+              <div className="text-base font-medium mb-2">
+                {aiLoading ? "AI Analysis" : "✅ AI Analysis Complete"}
+              </div>
               {aiLoading && <div className="text-sm">Analyzing with AI...</div>}
               {aiError && (
                 <div className="text-sm text-red-600">{aiError.message}</div>
@@ -105,6 +163,15 @@ export default function DashboardPage() {
                       ))}
                     </ul>
                   </div>
+                  {/* <div className="mt-4">
+                    <button
+                      onClick={resetStates}
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors text-sm"
+                    >
+                      Upload Another Contract
+                    </button>
+                  </div> */}
+
                 </div>
               )}
               {aiData && "error" in aiData && (

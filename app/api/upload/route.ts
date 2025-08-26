@@ -1,12 +1,20 @@
 import { NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
+import { createClient } from "@/lib/supabase-server";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 // Dynamically import pdf-parse inside the request handler to avoid bundling issues
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
+    const supabase = await createClient();
+    
+    // Get the current user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const formData = await request.formData();
     const file = formData.get("file");
 
@@ -25,15 +33,6 @@ export async function POST(request: Request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const uploadsDir = path.join(process.cwd(), "uploads");
-    try {
-      await fs.mkdir(uploadsDir, { recursive: true });
-    } catch {}
-
-    const safeName = fileName.replace(/[^a-zA-Z0-9_.-]/g, "_");
-    const filePath = path.join(uploadsDir, `${Date.now()}_${safeName}`);
-    await fs.writeFile(filePath, buffer);
-
     // Extract text content from PDF buffer
     let text = "";
     try {
@@ -45,13 +44,51 @@ export async function POST(request: Request) {
       text = "";
     }
 
+    // Upload file to Supabase Storage
+    const safeName = fileName.replace(/[^a-zA-Z0-9_.-]/g, "_");
+    const filePath = `${user.id}/${Date.now()}_${safeName}`;
+    
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('contracts')
+      .upload(filePath, buffer, {
+        contentType: fileType,
+        upsert: false
+      });
+
+    if (uploadError) {
+      console.error('Storage upload error:', uploadError);
+      return NextResponse.json({ error: "Failed to upload file to storage" }, { status: 500 });
+    }
+
+    // Save contract metadata to database
+    const { data: contractData, error: dbError } = await supabase
+      .from('contracts')
+      .insert({
+        user_id: user.id,
+        filename: fileName,
+        file_path: filePath,
+        file_size: buffer.length,
+        file_type: fileType,
+        extracted_text: text
+      })
+      .select()
+      .single();
+
+    if (dbError) {
+      console.error('Database insert error:', dbError);
+      // Clean up uploaded file if database insert fails
+      await supabase.storage.from('contracts').remove([filePath]);
+      return NextResponse.json({ error: "Failed to save contract metadata" }, { status: 500 });
+    }
+
     return NextResponse.json({
       ok: true,
       name: fileName,
       size: buffer.length,
       type: fileType,
-      savedAs: path.basename(filePath),
+      savedAs: filePath,
       extractedText: text,
+      contractId: contractData.id
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Upload failed";
