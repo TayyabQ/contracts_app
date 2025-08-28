@@ -61,89 +61,163 @@ export default function ContractsList() {
   return (
     <div className="w-full">
       {loading && (
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-sm text-gray-600">Loading contracts...</p>
+        <div className="text-center py-12">
+          <div className="inline-flex items-center justify-center w-16 h-16 gradient-primary rounded-full animate-spin mb-4">
+            <div className="w-8 h-8 bg-black rounded-full"></div>
+          </div>
+          <p className="text-secondary-foreground">Loading your contracts...</p>
         </div>
       )}
 
       {error && error.name !== 'AbortError' && (
-        <div className="text-red-600 text-sm bg-red-50 dark:bg-red-900/20 p-3 rounded-md">
-          {error.message}
+        <div className="p-6 bg-error/10 border border-error/20 rounded-xl text-error animate-slide-in">
+          <div className="flex items-center gap-3">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="font-medium">{error.message}</span>
+          </div>
         </div>
       )}
 
       {data && data.contracts && data.contracts.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
-          <p>No contracts uploaded yet.</p>
-          <p className="text-sm mt-1">Close & Upload your first contract to get started!</p>
+        <div className="text-center py-16">
+          <div className="w-24 h-24 mx-auto mb-6 bg-secondary rounded-full flex items-center justify-center">
+            <svg className="w-12 h-12 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <h3 className="text-xl font-semibold mb-2">No contracts yet</h3>
+          <p className="text-secondary-foreground">Upload your first contract to get started with AI analysis</p>
         </div>
       )}
 
       {data && data.contracts && data.contracts.length > 0 && (
-        <div className="space-y-4">
-          {data.contracts.map((contract) => (
-            <div key={contract.id} className="border rounded-lg p-4 bg-white dark:bg-gray-800">
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h3 className="font-semibold text-lg">{contract.filename}</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
-                    Uploaded: {formatDate(contract.uploaded_at)} • Size: {formatFileSize(contract.file_size)}
-                  </p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {data.contracts.map((contract, index) => (
+            <div 
+              key={contract.id} 
+              className="card-glass animate-fade-in"
+              style={{ animationDelay: `${index * 0.1}s` }}
+            >
+              {/* Header */}
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 gradient-primary rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg line-clamp-1">{contract.filename}</h3>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                      <span>{formatFileSize(contract.file_size)}</span>
+                      <span>•</span>
+                      <span>{formatDate(contract.uploaded_at)}</span>
+                    </div>
+                  </div>
                 </div>
+                
+                {contract.analysis_results && contract.analysis_results.length > 0 && (
+                  <div className="flex items-center gap-1 px-2 py-1 bg-success/10 border border-success/20 rounded-full">
+                    <div className="w-2 h-2 bg-success rounded-full"></div>
+                    <span className="text-xs font-medium text-success">Analyzed</span>
+                  </div>
+                )}
               </div>
 
+              {/* Analysis Results */}
               {contract.analysis_results && contract.analysis_results.length > 0 ? (
-                <div className="space-y-3">
-                  <div className="border-l-4 border-blue-500 pl-3">
-                    <h4 className="font-medium text-blue-700 dark:text-blue-300">Summary</h4>
-                    <p className="text-sm mt-1">{contract.analysis_results[0].summary}</p>
+                <div className="space-y-4">
+                  {/* Summary */}
+                  <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <h4 className="font-medium text-primary">Summary</h4>
+                    </div>
+                    <p className="text-sm text-secondary-foreground line-clamp-3">
+                      {contract.analysis_results[0].summary}
+                    </p>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="border-l-4 border-red-500 pl-3">
-                      <h4 className="font-medium text-red-700 dark:text-red-300">Issues</h4>
-                      <ul className="text-sm mt-1 space-y-1">
-                        {contract.analysis_results[0].issues.map((issue, idx) => (
-                          <li key={idx} className="flex items-start">
-                            <span className="text-red-500 mr-2">•</span>
-                            <span>{issue}</span>
+                  {/* Issues and Improvements */}
+                  <div className="grid grid-cols-1 gap-3">
+                    <div className="p-3 bg-error/5 border border-error/20 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <svg className="w-4 h-4 text-error" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <h4 className="font-medium text-error">Issues ({contract.analysis_results[0].issues.length})</h4>
+                      </div>
+                      <ul className="space-y-1">
+                        {contract.analysis_results[0].issues.slice(0, 2).map((issue, idx) => (
+                          <li key={idx} className="flex items-start gap-2 text-xs">
+                            <span className="text-error mt-1">•</span>
+                            <span className="text-secondary-foreground line-clamp-2">{issue}</span>
                           </li>
                         ))}
+                        {contract.analysis_results[0].issues.length > 2 && (
+                          <li className="text-xs text-muted-foreground">
+                            +{contract.analysis_results[0].issues.length - 2} more issues
+                          </li>
+                        )}
                       </ul>
                     </div>
 
-                    <div className="border-l-4 border-green-500 pl-3">
-                      <h4 className="font-medium text-green-700 dark:text-green-300">Improvements</h4>
-                      <ul className="text-sm mt-1 space-y-1">
-                        {contract.analysis_results[0].improvements.map((improvement, idx) => (
-                          <li key={idx} className="flex items-start">
-                            <span className="text-green-500 mr-2">•</span>
-                            <span>{improvement}</span>
+                    <div className="p-3 bg-success/5 border border-success/20 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <svg className="w-4 h-4 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <h4 className="font-medium text-success">Improvements ({contract.analysis_results[0].improvements.length})</h4>
+                      </div>
+                      <ul className="space-y-1">
+                        {contract.analysis_results[0].improvements.slice(0, 2).map((improvement, idx) => (
+                          <li key={idx} className="flex items-start gap-2 text-xs">
+                            <span className="text-success mt-1">•</span>
+                            <span className="text-secondary-foreground line-clamp-2">{improvement}</span>
                           </li>
                         ))}
+                        {contract.analysis_results[0].improvements.length > 2 && (
+                          <li className="text-xs text-muted-foreground">
+                            +{contract.analysis_results[0].improvements.length - 2} more improvements
+                          </li>
+                        )}
                       </ul>
                     </div>
                   </div>
 
-                  <p className="text-xs text-gray-500 mt-2">
+                  <div className="text-xs text-muted-foreground pt-2 border-t border-border">
                     Analyzed: {formatDate(contract.analysis_results[0].analyzed_at)}
-                  </p>
+                  </div>
                 </div>
               ) : (
-                <div className="text-center py-4 text-gray-500">
-                  <p className="text-sm">No analysis available for this contract.</p>
+                <div className="text-center py-8">
+                  <div className="w-12 h-12 mx-auto mb-3 bg-secondary rounded-full flex items-center justify-center">
+                    <svg className="w-6 h-6 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <p className="text-sm text-muted-foreground">No analysis available</p>
                 </div>
               )}
 
+              {/* Extracted Text Toggle */}
               {contract.extracted_text && (
-                <details className="mt-3">
-                  <summary className="cursor-pointer text-sm text-blue-600 hover:text-blue-800">
+                <details className="mt-4 group">
+                  <summary className="cursor-pointer text-sm text-primary hover:text-primary-dark font-medium flex items-center gap-2 transition-colors">
+                    <svg className="w-4 h-4 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
                     View Extracted Text
                   </summary>
-                  <pre className="mt-2 text-xs p-3 rounded-md border bg-gray-50 dark:bg-gray-700 overflow-y-auto max-h-40 whitespace-pre-wrap">
-                    {contract.extracted_text}
-                  </pre>
+                  <div className="mt-3 p-4 bg-secondary/50 rounded-lg border border-border">
+                    <pre className="text-xs text-secondary-foreground overflow-y-auto max-h-40 whitespace-pre-wrap leading-relaxed">
+                      {contract.extracted_text}
+                    </pre>
+                  </div>
                 </details>
               )}
             </div>

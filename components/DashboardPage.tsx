@@ -28,165 +28,283 @@ export default function DashboardPage() {
     resetAnalysis();
   };
 
-
-
   // If showing contracts list, render only that
   if (showContractsList) {
     return (
-      <div className="flex flex-col gap-6 max-w-4xl w-full">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-semibold">All Contracts</h1>
-          <button
-            onClick={() => setShowContractsList(false)}
-            className="bg-white hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-900 dark:text-white font-medium py-2 px-4 rounded-md transition-colors border border-gray-300 dark:border-gray-600"
-          >
-            Close
-          </button>
+      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black p-6">
+        <div className="max-w-7xl mx-auto animate-fade-in">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                Your Contracts
+              </h1>
+              <p className="text-secondary-foreground mt-2">
+                View and manage all your uploaded contracts
+              </p>
+            </div>
+            <button
+              onClick={() => setShowContractsList(false)}
+              className="btn-secondary flex items-center gap-2 group"
+            >
+              <svg 
+                className="w-4 h-4 transition-transform group-hover:translate-x-1" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Upload New Contract
+            </button>
+          </div>
+          <ContractsList key={Date.now()} />
         </div>
-        <ContractsList key={Date.now()} />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-xl w-full">
-      <p className="text-sm text-gray-600 dark:text-gray-300">
-        Upload a PDF contract to analyze.
-      </p>
-      <FilePicker
-        label="Choose a PDF contract"
-        onFileSelected={(file) => {
-          setSelectedFileName(file.name);
-          setSelectedFile(file);
-        }}
-      />
-      {selectedFileName && (
-        <div className="text-sm">
-          Selected: <span className="font-medium">{selectedFileName}</span>
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black p-6">
+      <div className="max-w-7xl mx-auto animate-fade-in">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent mb-2">
+            Analyze Your Contract
+          </h1>
+          <p className="text-secondary-foreground">
+            Upload a PDF contract and get instant AI-powered insights
+          </p>
         </div>
-      )}
-      <div className="flex gap-3">
-        <button
-          onClick={async () => {
-            if (!selectedFile) return;
-            
-            // Clear any previous data before starting new upload
-            resetUpload();
-            resetAnalysis();
-            
-            // Small delay to ensure states are cleared
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            console.log('Starting upload for:', selectedFile.name);
-            const formData = new FormData();
-            formData.append("file", selectedFile);
-            const result = await execute({ method: "POST", body: formData });
-            const ok = result.ok && result.data && "ok" in result.data && (result.data as any).ok;
-            
-            console.log('Upload result:', { ok, data: result.data });
-            
-            if (ok) {
-              const extracted = (result.data as any).extractedText;
-              const contractId = (result.data as any).contractId;
-              console.log('Starting analysis with:', { extractedLength: extracted.length, contractId });
-              
-              if (extracted && contractId) {
-                await runAnalyze({
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ 
-                    extractedText: extracted,
-                    contractId: contractId 
-                  }),
-                });
-              } else {
-                console.warn('Missing extracted text or contract ID:', { extracted: !!extracted, contractId: !!contractId });
-              }
-            }
-          }}
-          disabled={!selectedFile || uploading}
-          className="rounded-md border border-solid border-black/[.08] dark:border-white/[.145] px-4 py-2 text-sm font-medium hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] disabled:opacity-50"
-        >
-          {uploading ? "Uploading..." : "Upload"}
-        </button>
-        <button
-          onClick={() => setShowContractsList(true)}
-          className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-md transition-colors flex-1"
-        >
-          View All Contracts
-        </button>
-      </div>
-      {uploadData && "ok" in uploadData && (uploadData as any).ok && (
-        <div className="mt-2 text-sm">
-          <div className="font-medium text-green-600">✅ File uploaded successfully!</div>
-          <ul className="list-disc list-inside">
-            <li>Name: {(uploadData as any).name}</li>
-            <li>Type: {(uploadData as any).type}</li>
-            <li>Size: {(((uploadData as any).size as number) / 1024).toFixed(2)} KB</li>
-            <li>Saved as: {(uploadData as any).savedAs}</li>
-          </ul>
 
-          {Boolean((uploadData as any).extractedText) && (
-            <div className="mt-4">
-              <div className="text-base font-medium mb-1">Extracted Content</div>
-              <pre className="whitespace-pre-wrap text-xs p-3 rounded-md border bg-gray-50 dark:bg-gray-800 overflow-y-auto max-h-80">{(uploadData as any).extractedText}</pre>
-            </div>
-          )}
-          {Boolean((uploadData as any).extractedText) && (
-            <div className="mt-4">
-              <div className="text-base font-medium mb-2">
-                {aiLoading ? "AI Analysis" : "✅ AI Analysis Complete"}
+        {/* Main content - File Picker and Extracted Text side by side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Left: File Picker */}
+          <div className="card-glass">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 gradient-primary rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
               </div>
-              {aiLoading && <div className="text-sm">Analyzing with AI...</div>}
-              {aiError && (
-                <div className="text-sm text-red-600">{aiError.message}</div>
-              )}
-              {aiData && !("error" in aiData) && (
-                <div className="text-sm flex flex-col gap-4">
-                  <div className="border rounded-md p-3 bg-white/40 dark:bg-black/20">
-                    <div className="font-semibold mb-2">Summary</div>
-                    <p className="whitespace-pre-wrap text-sm leading-6">{(aiData as any).summary}</p>
-                  </div>
-                  <div className="border rounded-md p-3 bg-white/40 dark:bg-black/20">
-                    <div className="font-semibold mb-2">Issues</div>
-                    <ul className="list-disc list-inside space-y-1">
-                      {(aiData as any).issues?.map((it: string, idx: number) => (
-                        <li key={idx}>{it}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div className="border rounded-md p-3 bg-white/40 dark:bg-black/20">
-                    <div className="font-semibold mb-2">Improvements</div>
-                    <ul className="list-disc list-inside space-y-1">
-                      {(aiData as any).improvements?.map((it: string, idx: number) => (
-                        <li key={idx}>{it}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  {/* <div className="mt-4">
-                    <button
-                      onClick={resetStates}
-                      className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors text-sm"
-                    >
-                      Upload Another Contract
-                    </button>
-                  </div> */}
+              <h2 className="text-xl font-semibold">Upload Contract</h2>
+            </div>
+            
+            <FilePicker
+              label="Choose a PDF contract"
+              onFileSelected={(file) => {
+                setSelectedFileName(file.name);
+                setSelectedFile(file);
+              }}
+            />
+            
+            {selectedFileName && (
+              <div className="mt-4 p-4 bg-success/10 border border-success/20 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-sm font-medium text-success">Selected: {selectedFileName}</span>
+                </div>
+              </div>
+            )}
 
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={async () => {
+                  if (!selectedFile) return;
+                  
+                  // Clear any previous data before starting new upload
+                  resetUpload();
+                  resetAnalysis();
+                  
+                  // Small delay to ensure states are cleared
+                  await new Promise(resolve => setTimeout(resolve, 100));
+                  
+                  console.log('Starting upload for:', selectedFile.name);
+                  const formData = new FormData();
+                  formData.append("file", selectedFile);
+                  const result = await execute({ method: "POST", body: formData });
+                  const ok = result.ok && result.data && "ok" in result.data && (result.data as any).ok;
+                  
+                  console.log('Upload result:', { ok, data: result.data });
+                  
+                  if (ok) {
+                    const extracted = (result.data as any).extractedText;
+                    const contractId = (result.data as any).contractId;
+                    console.log('Starting analysis with:', { extractedLength: extracted.length, contractId });
+                    
+                    if (extracted && contractId) {
+                      await runAnalyze({
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ 
+                          extractedText: extracted,
+                          contractId: contractId 
+                        }),
+                      });
+                    } else {
+                      console.warn('Missing extracted text or contract ID:', { extracted: !!extracted, contractId: !!contractId });
+                    }
+                  }
+                }}
+                disabled={!selectedFile || uploading}
+                className="btn-primary flex items-center gap-2 group flex-1"
+              >
+                {uploading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                    <span>Uploading...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                    <span>Analyze Contract</span>
+                  </>
+                )}
+              </button>
+              
+              <button
+                onClick={() => setShowContractsList(true)}
+                className="btn-secondary flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                <span>View All</span>
+              </button>
+            </div>
+
+            {uploadError && (
+              <div className="mt-4 p-4 bg-error/10 border border-error/20 rounded-lg text-error animate-slide-in">
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-sm font-medium">{uploadError.message}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right: Extracted Text */}
+          <div className="card-glass">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 gradient-accent rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-semibold">Extracted Text</h2>
+            </div>
+            
+            <div className="h-96 overflow-y-auto">
+              {uploadData && "ok" in uploadData && (uploadData as any).ok && (uploadData as any).extractedText ? (
+                <div className="p-4 bg-secondary/50 rounded-lg border border-border h-full">
+                  <pre className="text-sm text-secondary-foreground whitespace-pre-wrap leading-relaxed h-full overflow-y-auto">
+                    {(uploadData as any).extractedText}
+                  </pre>
+                </div>
+              ) : (
+                <div className="h-full flex items-center justify-center text-center">
+                  <div className="text-muted-foreground">
+                    <svg className="w-12 h-12 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <p className="text-sm">Upload a contract to see extracted text</p>
+                  </div>
                 </div>
               )}
-              {aiData && "error" in aiData && (
-                <div className="text-sm text-red-600">{(aiData as any).error}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Analysis Results - Below both sections */}
+        {uploadData && "ok" in uploadData && (uploadData as any).ok && (
+          <div className="card-glass animate-slide-in">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 gradient-success rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-semibold">Analysis Results</h2>
+            </div>
+
+            <div className="space-y-4">
+              <div className="p-4 bg-secondary/50 rounded-lg">
+                <div className="text-muted-foreground text-sm mb-2">File Details</div>
+                <div className="font-medium">{(uploadData as any).name}</div>
+                <div className="text-sm text-secondary-foreground">{(((uploadData as any).size as number) / 1024).toFixed(2)} KB</div>
+              </div>
+
+              {Boolean((uploadData as any).extractedText) && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                    <span className="text-sm font-medium">
+                      {aiLoading ? "AI Analysis in Progress..." : "✅ AI Analysis Complete"}
+                    </span>
+                  </div>
+                  
+                  {aiLoading && (
+                    <div className="space-y-3">
+                      <div className="skeleton h-4 w-full"></div>
+                      <div className="skeleton h-4 w-3/4"></div>
+                      <div className="skeleton h-4 w-1/2"></div>
+                    </div>
+                  )}
+                  
+                  {aiError && (
+                    <div className="p-4 bg-error/10 border border-error/20 rounded-lg text-error">
+                      <div className="flex items-center gap-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="text-sm font-medium">{aiError.message}</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {aiData && !("error" in aiData) && (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                      <div className="card">
+                        <h3 className="font-semibold mb-3 text-primary">Summary</h3>
+                        <p className="text-sm leading-6 text-secondary-foreground">{(aiData as any).summary}</p>
+                      </div>
+                      
+                      <div className="card">
+                        <h3 className="font-semibold mb-3 text-error">Issues Found</h3>
+                        <ul className="space-y-2">
+                          {(aiData as any).issues?.map((it: string, idx: number) => (
+                            <li key={idx} className="flex items-start gap-2 text-sm">
+                              <span className="text-error mt-1">•</span>
+                              <span className="text-secondary-foreground">{it}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      
+                      <div className="card">
+                        <h3 className="font-semibold mb-3 text-success">Improvements</h3>
+                        <ul className="space-y-2">
+                          {(aiData as any).improvements?.map((it: string, idx: number) => (
+                            <li key={idx} className="flex items-start gap-2 text-sm">
+                              <span className="text-success mt-1">•</span>
+                              <span className="text-secondary-foreground">{it}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
-          )}
-        </div>
-      )}
-      {uploadError && (
-        <div className="mt-2 text-sm text-red-600">{uploadError.message}</div>
-      )}
-      {uploadData && "error" in uploadData && (
-        <div className="mt-2 text-sm text-red-600">{(uploadData as any).error}</div>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
