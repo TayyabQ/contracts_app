@@ -131,9 +131,13 @@ export default function DashboardPage() {
                   if (ok) {
                     const extracted = (result.data as any).extractedText;
                     const contractId = (result.data as any).contractId;
-                    console.log('Starting analysis with:', { extractedLength: extracted.length, contractId });
+                    console.log('Starting analysis with:', { extracted, extractedLength: extracted?.length || 0, contractId });
                     
-                    if (extracted && contractId) {
+                    // Check if we have meaningful extracted text (not just a fallback message)
+                    const isFallbackMessage = extracted && extracted.includes("PDF content could not be extracted");
+                    const hasValidText = extracted && extracted.trim().length > 0 && !isFallbackMessage;
+                    
+                    if (hasValidText && contractId) {
                       await runAnalyze({
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -142,8 +146,15 @@ export default function DashboardPage() {
                           contractId: contractId 
                         }),
                       });
+                    } else if (isFallbackMessage) {
+                      console.warn('PDF text extraction failed, showing fallback message to user');
+                      // Don't start AI analysis if we only have fallback message
                     } else {
-                      console.warn('Missing extracted text or contract ID:', { extracted: !!extracted, contractId: !!contractId });
+                      console.warn('Missing extracted text or contract ID:', { 
+                        extracted: !!extracted, 
+                        extractedLength: extracted?.length || 0,
+                        contractId: !!contractId 
+                      });
                     }
                   }
                 }}

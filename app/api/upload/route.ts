@@ -39,9 +39,32 @@ export async function POST(request: Request) {
       const { default: pdfParse } = await import("pdf-parse");
       const parsed = await pdfParse(buffer);
       text = parsed.text || "";
+      
+      // If first attempt fails, try again (sometimes it works on retry)
+      if (!text || text.trim().length === 0) {
+        console.log('First PDF parsing attempt failed, trying again...');
+        const parsedRetry = await pdfParse(buffer);
+        text = parsedRetry.text || "";
+      }
+      
+      console.log('Final extracted text length:', text.length);
     } catch (e) {
-      // If parsing fails, we still return upload info but note extraction failure
-      text = "";
+      console.error('PDF parsing failed:', e);
+      // Try one more time with error handling
+      try {
+        const { default: pdfParse } = await import("pdf-parse");
+        const fallbackParsed = await pdfParse(buffer);
+        text = fallbackParsed.text || "";
+        console.log('Fallback extraction successful, text length:', text.length);
+      } catch (fallbackError) {
+        console.error('All PDF parsing methods failed:', fallbackError);
+        text = "PDF content could not be extracted. Please ensure the PDF contains readable text and is not password-protected or corrupted.";
+      }
+    }
+
+    // Final validation - ensure we always have some content
+    if (!text || text.trim().length === 0) {
+      text = "PDF content could not be extracted. Please ensure the PDF contains readable text and is not password-protected or corrupted.";
     }
 
     // Upload file to Supabase Storage
