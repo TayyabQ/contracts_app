@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useEffect } from 'react'
 import { useFetch } from '@/hooks/useFetch'
 
 interface Contract {
@@ -30,9 +30,9 @@ export default function ContractsList() {
     const fetchContracts = async () => {
       try {
         await execute({ method: 'GET' })
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Ignore abort errors
-        if (error?.name !== 'AbortError') {
+        if (error && typeof error === 'object' && 'name' in error && error.name !== 'AbortError') {
           console.error('Error fetching contracts:', error)
         }
       }
@@ -69,7 +69,7 @@ export default function ContractsList() {
         </div>
       )}
 
-      {error && error.name !== 'AbortError' && (
+      {error && typeof error === 'object' && 'name' in error && error.name !== 'AbortError' && (
         <div className="p-6 bg-error/10 border border-error/20 rounded-xl text-error animate-slide-in">
           <div className="flex items-center gap-3">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

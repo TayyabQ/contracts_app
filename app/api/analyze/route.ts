@@ -68,7 +68,7 @@ Contract text:\n\n${extractedText.slice(0, 20000)}`; // guard length
 
     const data = await resp.json();
     const parts = data?.candidates?.[0]?.content?.parts || [];
-    const text = parts.map((p: any) => (typeof p?.text === "string" ? p.text : "")).join("\n");
+    const text = parts.map((p: { text?: string }) => (typeof p?.text === "string" ? p.text : "")).join("\n");
 
     let parsed: AnalyzeResponse | null = null;
     // Try strict JSON first

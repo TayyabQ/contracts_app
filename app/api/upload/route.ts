@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
-import { supabaseAdmin } from "@/lib/supabase-admin";
 // Dynamically import pdf-parse inside the request handler to avoid bundling issues
 
 export const runtime = "nodejs";
@@ -71,7 +70,7 @@ export async function POST(request: Request) {
     const safeName = fileName.replace(/[^a-zA-Z0-9_.-]/g, "_");
     const filePath = `${user.id}/${Date.now()}_${safeName}`;
     
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('contracts')
       .upload(filePath, buffer, {
         contentType: fileType,

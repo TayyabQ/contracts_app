@@ -20,13 +20,7 @@ export default function DashboardPage() {
       "/api/analyze"
     );
 
-  // Reset function to clear all states
-  const resetStates = () => {
-    setSelectedFileName("");
-    setSelectedFile(null);
-    resetUpload();
-    resetAnalysis();
-  };
+
 
   // If showing contracts list, render only that
   if (showContractsList) {
@@ -124,13 +118,13 @@ export default function DashboardPage() {
                   const formData = new FormData();
                   formData.append("file", selectedFile);
                   const result = await execute({ method: "POST", body: formData });
-                  const ok = result.ok && result.data && "ok" in result.data && (result.data as any).ok;
+                  const ok = result.ok && result.data && "ok" in result.data && (result.data as { ok: boolean }).ok;
                   
                   console.log('Upload result:', { ok, data: result.data });
                   
                   if (ok) {
-                    const extracted = (result.data as any).extractedText;
-                    const contractId = (result.data as any).contractId;
+                    const extracted = (result.data as { extractedText?: string }).extractedText;
+                    const contractId = (result.data as { contractId?: string }).contractId;
                     console.log('Starting analysis with:', { extracted, extractedLength: extracted?.length || 0, contractId });
                     
                     // Check if we have meaningful extracted text (not just a fallback message)
@@ -211,10 +205,10 @@ export default function DashboardPage() {
             </div>
             
             <div className="h-96 overflow-y-auto">
-              {uploadData && "ok" in uploadData && (uploadData as any).ok && (uploadData as any).extractedText ? (
+              {uploadData && "ok" in uploadData && (uploadData as { ok: boolean }).ok && (uploadData as { extractedText?: string }).extractedText ? (
                 <div className="p-4 bg-secondary/50 rounded-lg border border-border h-full">
                   <pre className="text-sm text-secondary-foreground whitespace-pre-wrap leading-relaxed h-full overflow-y-auto">
-                    {(uploadData as any).extractedText}
+                    {(uploadData as { extractedText: string }).extractedText}
                   </pre>
                 </div>
               ) : (
@@ -232,7 +226,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Analysis Results - Below both sections */}
-        {uploadData && "ok" in uploadData && (uploadData as any).ok && (
+        {uploadData && "ok" in uploadData && (uploadData as { ok: boolean }).ok && (
           <div className="card-glass animate-slide-in">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 gradient-success rounded-lg flex items-center justify-center">
@@ -246,11 +240,11 @@ export default function DashboardPage() {
             <div className="space-y-4">
               <div className="p-4 bg-secondary/50 rounded-lg">
                 <div className="text-muted-foreground text-sm mb-2">File Details</div>
-                <div className="font-medium">{(uploadData as any).name}</div>
-                <div className="text-sm text-secondary-foreground">{(((uploadData as any).size as number) / 1024).toFixed(2)} KB</div>
+                <div className="font-medium">{(uploadData as { name?: string }).name}</div>
+                <div className="text-sm text-secondary-foreground">{(((uploadData as { size?: number }).size || 0) / 1024).toFixed(2)} KB</div>
               </div>
 
-              {Boolean((uploadData as any).extractedText) && (
+              {Boolean((uploadData as { extractedText?: string }).extractedText) && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
@@ -282,13 +276,13 @@ export default function DashboardPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                       <div className="card">
                         <h3 className="font-semibold mb-3 text-primary">Summary</h3>
-                        <p className="text-sm leading-6 text-secondary-foreground">{(aiData as any).summary}</p>
+                        <p className="text-sm leading-6 text-secondary-foreground">{(aiData as { summary: string }).summary}</p>
                       </div>
                       
                       <div className="card">
                         <h3 className="font-semibold mb-3 text-error">Issues Found</h3>
                         <ul className="space-y-2">
-                          {(aiData as any).issues?.map((it: string, idx: number) => (
+                          {(aiData as { issues?: string[] }).issues?.map((it: string, idx: number) => (
                             <li key={idx} className="flex items-start gap-2 text-sm">
                               <span className="text-error mt-1">•</span>
                               <span className="text-secondary-foreground">{it}</span>
@@ -300,7 +294,7 @@ export default function DashboardPage() {
                       <div className="card">
                         <h3 className="font-semibold mb-3 text-success">Improvements</h3>
                         <ul className="space-y-2">
-                          {(aiData as any).improvements?.map((it: string, idx: number) => (
+                          {(aiData as { improvements?: string[] }).improvements?.map((it: string, idx: number) => (
                             <li key={idx} className="flex items-start gap-2 text-sm">
                               <span className="text-success mt-1">•</span>
                               <span className="text-secondary-foreground">{it}</span>
