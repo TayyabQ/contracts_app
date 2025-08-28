@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import React from 'react'
 import { useFetch } from '@/hooks/useFetch'
 
 interface Contract {
